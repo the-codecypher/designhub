@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Providers\RouteServiceProvider;
-use GuzzleHttp\Psr7\Request;
-//use http\Env\Url;
-use http\Url;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Auth\Events\Verified;
-use Illuminate\Foundation\Auth\VerifiesEmails;
+use Illuminate\Validation\ValidationException;
 
 class VerificationController extends Controller
 {
@@ -20,11 +19,15 @@ class VerificationController extends Controller
      */
     public function __construct()
     {
-//        $this->middleware('auth');
-        $this->middleware('signed')->only('verify');
+//        $this->middleware('signed')->only('verify');
         $this->middleware('throttle:6,1')->only('verify', 'resend');
     }
 
+    /**
+     * @param Request $request
+     * @param User $user
+     * @return JsonResponse
+     */
     public function verify(Request $request, User $user) {
         // Check URL is a valid signed URL
         if (! URL::hasValidSignature($request)) {
@@ -46,7 +49,26 @@ class VerificationController extends Controller
         return response()->json(["message" => "Email successfully verified"], 200);
     }
 
+    /**
+     * @param Request $request
+     * @return JsonResponse
+     * @throws ValidationException
+     */
     public function resend(Request $request) {
-        //
+        $this->validate($request, [
+            'email' => ['email', 'required']
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(["errors" => [
+                "email" => "No user associated with this email address"
+            ]], 422);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return response()->json(['status' => 'Verification link resent']);
     }
 }
