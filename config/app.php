@@ -53,6 +53,7 @@ return [
     */
 
     'url' => env('APP_URL', 'http://designhub.test'),
+    'client_url' => env('CLIENT_URL', 'http://designhub.test'),
 
     'asset_url' => env('ASSET_URL', null),
 
