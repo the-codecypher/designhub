@@ -3,31 +3,16 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Providers\RouteServiceProvider;
+use GuzzleHttp\Psr7\Request;
+//use http\Env\Url;
+use http\Url;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Auth\VerifiesEmails;
 
 class VerificationController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Email Verification Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller is responsible for handling email verification for any
-    | user that recently registered with the application. Emails may also
-    | be re-sent if the user didn't receive the original email message.
-    |
-    */
-
-    use VerifiesEmails;
-
-    /**
-     * Where to redirect users after verification.
-     *
-     * @var string
-     */
-    protected $redirectTo = RouteServiceProvider::HOME;
-
     /**
      * Create a new controller instance.
      *
@@ -35,8 +20,33 @@ class VerificationController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth');
+//        $this->middleware('auth');
         $this->middleware('signed')->only('verify');
         $this->middleware('throttle:6,1')->only('verify', 'resend');
+    }
+
+    public function verify(Request $request, User $user) {
+        // Check URL is a valid signed URL
+        if (! URL::hasValidSignature($request)) {
+            return response()->json(["errors" => [
+                "message" => "Invalid verification link"
+            ]], 433);
+        }
+
+        // Check if the user has already verified account
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(["errors" => [
+                "message" => "Email address already verified"
+            ]], 433);
+        }
+
+        $user->markEmailAsVerified();
+        event(new Verified($user));
+
+        return response()->json(["message" => "Email successfully verified"], 200);
+    }
+
+    public function resend(Request $request) {
+        //
     }
 }
