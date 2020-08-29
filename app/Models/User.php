@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Notifications\VerifyEmail;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -75,5 +76,9 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function sendPasswordResetNotification($token) {
+        $this->notify(new ResetPassword($token));
     }
 }
