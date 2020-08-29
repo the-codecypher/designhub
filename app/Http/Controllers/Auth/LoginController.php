@@ -13,34 +13,33 @@ class LoginController extends Controller
     use AuthenticatesUsers;
 
     public function attemptLogin(Request $request) {
-        // Attempt to issue a token to the user based on the login credentials
+        // attempt to issue a token to the user based on the login credentials
         $token = $this->guard()->attempt($this->credentials($request));
 
-        // If token got issue
-        if (! $token ) {
+        if( ! $token){
             return false;
         }
 
         // Get the authenticated user
         $user = $this->guard()->user();
 
-        // If the user verified email
-        if ( $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail() ) {
+        if($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()){
             return false;
         }
 
-        // Set the user's token
+        // set the user's token
         $this->guard()->setToken($token);
+
         return true;
     }
 
     protected function sendLoginResponse(Request $request) {
         $this->clearLoginAttempts($request);
 
-        // Get the token from authentication guard (JWT)
+        // get the tokem from the authentication guard (JWT)
         $token = (string)$this->guard()->getToken();
 
-        // Extract expiry date
+        // extract the expiry date of the token
         $expiration = $this->guard()->getPayload()->get('exp');
 
         return response()->json([
@@ -50,17 +49,22 @@ class LoginController extends Controller
         ]);
     }
 
-    protected function sendFailedLoginResponse(Request $request) {
+    protected function sendFailedLoginResponse() {
         $user = $this->guard()->user();
 
-        if ( $user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail() ) {
+        if($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()){
             return response()->json(["errors" => [
-                "verification" => "You need to verify your email account"
-            ]]);
+                "message" => "You need to verify your email account"
+            ]], 422);
         }
 
         throw ValidationException::withMessages([
-            $this->username() => "Authentication failed"
+            $this->username() => "Invalid credentials"
         ]);
+    }
+
+    public function logout() {
+        $this->guard()->logout();
+        return response()->json(['message' => 'Logged out successfully!']);
     }
 }
